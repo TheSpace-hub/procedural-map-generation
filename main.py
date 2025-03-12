@@ -5,6 +5,7 @@ from enum import Enum
 
 from random import randint, uniform
 from math import sqrt, pi, cos, sin
+from time import sleep
 
 pg.init()
 
@@ -50,7 +51,7 @@ class Map:
     rooms: list[Rect] = []
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 50):
+    def generate_initial_rooms(cls, count: int = 70):
         radius: int = 15
         for i in range(count):
             angle = uniform(0, 2 * pi)
@@ -62,7 +63,7 @@ class Map:
             y = 15 + distance * sin(angle)
 
             cls.rooms.append(
-                Rect(x, y, randint(3, 10), randint(3, 10))
+                Rect(x, y, randint(5, 10), randint(5, 10))
             )
 
         cls.update_map()
@@ -86,6 +87,35 @@ class Map:
             cls.map.append(row)
 
     @classmethod
+    def separation_steering_for_rooms(cls):
+        separation_vectors: list[Vector2] = []
+        for target in cls.rooms:
+            separation_vectors.append(Vector2())
+            for neighbor in cls.rooms:
+                if target == neighbor:
+                    continue
+
+                if target.colliderect(neighbor):
+                    diff = Vector2(target.center[0], target.center[1]) - Vector2(neighbor.center[0],
+                                                                                 neighbor.center[1])
+
+                    if diff.length() != 0.0:
+                        diff = diff.normalize()
+                    separation_vectors[-1:][0] += diff
+
+        for i in range(len(separation_vectors)):
+            if separation_vectors[i].length() != 0:
+                separation_vectors[i] = separation_vectors[i].normalize()
+
+        for i in range(len(cls.rooms)):
+            room = cls.rooms[i]
+            move_vector = separation_vectors[i]
+            room.x += max(0, round(move_vector.x))
+            room.y += max(0, round(move_vector.y))
+
+        cls.update_map()
+
+    @classmethod
     def draw(cls, surface: Surface):
         tile_size: int = 10
         for y in range(len(cls.map)):
@@ -97,7 +127,7 @@ class Map:
                     color = (128, 128, 255)
 
                 pg.draw.rect(surface, color,
-                             Rect(300 + x * tile_size, 300 + y * tile_size, tile_size, tile_size), tile_size // 3)
+                             Rect(150 + x * tile_size, 150 + y * tile_size, tile_size, tile_size), tile_size // 3)
 
 
 def main():
@@ -109,12 +139,18 @@ def main():
     screen.fill((32, 32, 32))
 
     while True:
+        sleep(0.01)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
                     Log.stop = not Log.stop
+                if event.key == pg.K_s:
+                    pass
+
+        Map.separation_steering_for_rooms()
+
         screen.fill((32, 32, 32))
         Map.draw(screen)
 
