@@ -51,7 +51,7 @@ class Map:
     rooms: list[Rect] = []
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 70):
+    def generate_initial_rooms(cls, count: int = 150):
         radius: int = 15
         for i in range(count):
             angle = uniform(0, 2 * pi)
@@ -110,14 +110,24 @@ class Map:
         for i in range(len(cls.rooms)):
             room = cls.rooms[i]
             move_vector = separation_vectors[i]
-            room.x += max(0, round(move_vector.x))
-            room.y += max(0, round(move_vector.y))
+            room.x += round(move_vector.x)
+            room.y += round(move_vector.y)
+
+            if room.x < 0:
+                room.x = 0
+                for target in cls.rooms:
+                    target.x += 1
+
+            if room.y < 0:
+                room.y = 0
+                for target in cls.rooms:
+                    target.y += 1
 
         cls.update_map()
 
     @classmethod
     def draw(cls, surface: Surface):
-        tile_size: int = 10
+        tile_size: int = 5
         for y in range(len(cls.map)):
             for x in range(len(cls.map[y])):
                 color = (128, 128, 128)
@@ -139,7 +149,6 @@ def main():
     screen.fill((32, 32, 32))
 
     while True:
-        sleep(0.01)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
