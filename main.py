@@ -66,7 +66,7 @@ class Map:
 
     @staticmethod
     def _is_room_big(room: Rect) -> bool:
-        return room.width >= 8 and room.height >= 8
+        return room.width >= 12 and room.height >= 12
 
     @staticmethod
     def _choose_room_size(min_size, max_size, mean, std_dev):
@@ -159,9 +159,9 @@ class Map:
         x = 15 + distance * cos(angle)
         y = 15 + distance * sin(angle)
 
-        cls.rooms.append(
-            Rect(x, y, cls._choose_room_size(3, 20, 8, 2), cls._choose_room_size(3, 20, 8, 2))
-        )
+        room = Rect(x, y, cls._choose_room_size(5, 25, 12, 2), cls._choose_room_size(5, 25, 12, 2))
+
+        cls.rooms.append(room)
         cls.update_map()
         if len(cls.rooms) == count:
             cls.construction_stage = ConstructionStage.SEPARATION_STEERING_FOR_ROOMS
