@@ -54,6 +54,7 @@ class ConstructionStage(Enum):
     SEPARATION_STEERING_FOR_ROOMS = 2
     ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES = 3
     CREATING_CORRIDORS = 4
+    REMOVING_UNNECESSARY_ROOMS = 5
     DONE = 0
 
 
@@ -151,7 +152,7 @@ class Map:
         return mst
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 50):
+    def generate_initial_rooms(cls, count: int = 30):
         radius: int = 15
         angle = uniform(0, 2 * pi)
         distance = sqrt(uniform(0, 1)) * radius
@@ -199,14 +200,16 @@ class Map:
     @classmethod
     def build_step(cls) -> bool:
         Log.log(cls.construction_stage)
-        if cls.construction_stage == ConstructionStage.GENERATE_ROOMS:
-            cls.generate_initial_rooms(30)
-        elif cls.construction_stage == ConstructionStage.SEPARATION_STEERING_FOR_ROOMS:
-            cls.separation_steering_for_rooms()
-        elif cls.construction_stage == ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES:
-            cls.arrangement_of_the_corridor_graph_vertices()
-        elif cls.construction_stage == ConstructionStage.CREATING_CORRIDORS:
-            cls.creating_corridors()
+        actions = {
+            ConstructionStage.GENERATE_ROOMS: cls.generate_initial_rooms,
+            ConstructionStage.SEPARATION_STEERING_FOR_ROOMS: cls.separation_steering_for_rooms,
+            ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES: cls.arrangement_of_the_corridor_graph_vertices,
+            ConstructionStage.CREATING_CORRIDORS: cls.creating_corridors,
+            ConstructionStage.REMOVING_UNNECESSARY_ROOMS: cls.removing_unnecessary_rooms,
+            ConstructionStage.DONE: lambda: None
+        }
+
+        actions[cls.construction_stage]()
 
         return cls.construction_stage == ConstructionStage.DONE
 
@@ -279,6 +282,29 @@ class Map:
                     cls.big_rooms_center_points[edge[1]][0], cls.big_rooms_center_points[edge[1]][1], 2):
                 if cls._is_near_tile_empty(tile):
                     cls.map[tile[1]][tile[0]] = Tile.BARRIER
+
+        cls.construction_stage = ConstructionStage.REMOVING_UNNECESSARY_ROOMS
+
+    @classmethod
+    def removing_unnecessary_rooms(cls):
+        def erase_room(target: Rect):
+            for y in range(target.height):
+                for x in range(target.width):
+                    cls.map[target.y + y][target.x + x] = Tile.EMPTY
+
+        def is_unaffected(target: Rect):
+            for y in range(target.height):
+                if cls.map[target.y + y][target.x] == Tile.FLOOR or cls.map[target.y + y][
+                    target.x + target.width - 1] == Tile.FLOOR:
+                    return False
+            for x in range(target.width):
+                if cls.map[target.y][target.x + x] == Tile.FLOOR or cls.map[target.y + target.height - 1][
+                    target.x + x] == Tile.FLOOR:
+                    return False
+            erase_room(target)
+            return True
+
+        cls.rooms = list(filter(is_unaffected, cls.rooms))
         cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
