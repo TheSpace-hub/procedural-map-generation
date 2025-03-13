@@ -14,7 +14,7 @@ pg.init()
 class Log:
     logs: list[str] = []
     stop: bool = False
-    my_font = pg.font.SysFont('Comic Sans MS', 30)
+    my_font = pg.font.SysFont('freesansbold', 30)
 
     @classmethod
     def log(cls, text: any):
@@ -53,6 +53,7 @@ class ConstructionStage(Enum):
     GENERATE_ROOMS = 1
     SEPARATION_STEERING_FOR_ROOMS = 2
     ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES = 3
+    CREATING_CORRIDORS = 4
     DONE = 0
 
 
@@ -76,8 +77,41 @@ class Map:
     def _distance(p1, p2):
         return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
+    @staticmethod
+    def _get_tiles_in_line(x0, y0, x1, y1, width) -> list[tuple[int, int]]:
+        def bresenham_line(x0, y0, x1, y1):
+            points = []
+            dx = abs(x1 - x0)
+            dy = abs(y1 - y0)
+            sx = 1 if x0 < x1 else -1
+            sy = 1 if y0 < y1 else -1
+            err = dx - dy
+
+            while True:
+                points.append((x0, y0))
+                if x0 == x1 and y0 == y1:
+                    break
+                e2 = 2 * err
+                if e2 > -dy:
+                    err -= dy
+                    x0 += sx
+                if e2 < dx:
+                    err += dx
+                    y0 += sy
+            return points
+
+        main_line = bresenham_line(x0, y0, x1, y1)
+
+        wide_line = set()
+        for (x, y) in main_line:
+            for dx in range(-width, width + 1):
+                for dy in range(-width, width + 1):
+                    wide_line.add((x + dx, y + dy))
+
+        return list(wide_line)
+
     @classmethod
-    def _prim_mst(cls):
+    def _prim_mst(cls) -> list[tuple[int, int]]:
         points = cls.big_rooms_center_points
         if not points:
             return []
@@ -159,6 +193,8 @@ class Map:
             cls.separation_steering_for_rooms()
         elif cls.construction_stage == ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES:
             cls.arrangement_of_the_corridor_graph_vertices()
+        elif cls.construction_stage == ConstructionStage.CREATING_CORRIDORS:
+            cls.creating_corridors()
 
         return cls.construction_stage == ConstructionStage.DONE
 
@@ -216,6 +252,15 @@ class Map:
                     return
                 count -= 1
         cls.edges_of_the_corridor_graph = cls._prim_mst()
+        cls.construction_stage = ConstructionStage.CREATING_CORRIDORS
+
+    @classmethod
+    def creating_corridors(cls):
+        for edge in cls.edges_of_the_corridor_graph:
+            for tile in cls._get_tiles_in_line(
+                    cls.big_rooms_center_points[edge[0]][0], cls.big_rooms_center_points[edge[0]][1],
+                    cls.big_rooms_center_points[edge[1]][0], cls.big_rooms_center_points[edge[1]][1], 1):
+                cls.map[tile[1]][tile[0]] = Tile.FLOOR
         cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
