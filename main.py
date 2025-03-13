@@ -127,6 +127,8 @@ class Map:
         elif cls.construction_stage == ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES:
             cls.arrangement_of_the_corridor_graph_vertices()
 
+        return cls.construction_stage == ConstructionStage.DONE
+
     @classmethod
     def separation_steering_for_rooms(cls) -> bool:
         rooms_overlap = False
