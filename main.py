@@ -52,13 +52,19 @@ class Tile(Enum):
 class ConstructionStage(Enum):
     GENERATE_ROOMS = 1
     SEPARATION_STEERING_FOR_ROOMS = 2
+    ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES = 3
     DONE = 0
 
 
 class Map:
     map: list[list[Tile]] = []
     rooms: list[Rect] = []
+    big_rooms_center_points: list[tuple[int, int]] = []
     construction_stage: ConstructionStage = ConstructionStage.GENERATE_ROOMS
+
+    @staticmethod
+    def _is_room_big(room: Rect) -> bool:
+        return room.width >= 8 and room.height >= 8
 
     @staticmethod
     def _choose_room_size(min_size, max_size, mean, std_dev):
@@ -78,7 +84,7 @@ class Map:
             Rect(x, y, cls._choose_room_size(3, 20, 8, 2), cls._choose_room_size(3, 20, 8, 2))
         )
         cls.update_map()
-        if len(cls.rooms) == 50:
+        if len(cls.rooms) == count:
             cls.construction_stage = ConstructionStage.SEPARATION_STEERING_FOR_ROOMS
 
     @classmethod
@@ -103,20 +109,23 @@ class Map:
                 for room in cls.rooms:
                     if room.x <= x <= room.x + room.width - 1 and room.y <= y <= room.y + room.height - 1:
                         row[x] = Tile.FLOOR
-                        if room.width >= 8 and room.height >= 8:
+                        if cls._is_room_big(room):
                             row[x] = Tile.ROOM_FLOOR
                         if room.x == x or room.x + room.width - 1 == x or room.y == y or room.y + room.height - 1 == y:
                             row[x] = Tile.BARRIER
-                            if room.width >= 8 and room.height >= 8:
+                            if cls._is_room_big(room):
                                 row[x] = Tile.ROOM_BARRIER
             cls.map.append(row)
 
     @classmethod
     def build_step(cls) -> bool:
+        Log.log(cls.construction_stage)
         if cls.construction_stage == ConstructionStage.GENERATE_ROOMS:
-            cls.generate_initial_rooms()
+            cls.generate_initial_rooms(15)
         elif cls.construction_stage == ConstructionStage.SEPARATION_STEERING_FOR_ROOMS:
             cls.separation_steering_for_rooms()
+        elif cls.construction_stage == ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES:
+            cls.arrangement_of_the_corridor_graph_vertices()
 
     @classmethod
     def separation_steering_for_rooms(cls) -> bool:
@@ -160,7 +169,18 @@ class Map:
         cls.update_map()
 
         if not rooms_overlap:
-            cls.construction_stage = ConstructionStage.DONE
+            cls.construction_stage = ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES
+
+    @classmethod
+    def arrangement_of_the_corridor_graph_vertices(cls):
+        count = len(cls.big_rooms_center_points)
+        for room in cls.rooms:
+            if cls._is_room_big(room):
+                if count == 0:
+                    cls.big_rooms_center_points.append((room.centerx, room.centery))
+                    return
+                count -= 1
+        cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
     def draw(cls, surface: Surface):
@@ -182,6 +202,12 @@ class Map:
                                  Rect((960 - cls.get_size()[0] * tile_size / 2) + x * tile_size,
                                       (540 - cls.get_size()[1] * tile_size / 2) + y * tile_size, tile_size, tile_size),
                                  tile_size // 3)
+
+        for point in cls.big_rooms_center_points:
+            pg.draw.circle(surface, (0, 255, 0), [
+                (960 - cls.get_size()[0] * tile_size / 2) + point[0] * tile_size,
+                (540 - cls.get_size()[1] * tile_size / 2) + point[1] * tile_size
+            ], 5)
 
 
 def main():
