@@ -111,6 +111,18 @@ class Map:
         return list(wide_line)
 
     @classmethod
+    def _is_near_tile_empty(cls, tile) -> bool:
+        return (cls.map[tile[1] - 1][tile[0]] == Tile.EMPTY or
+                cls.map[tile[1] - 1][tile[0] - 1] == Tile.EMPTY or
+                cls.map[tile[1] - 1][tile[0] + 1] == Tile.EMPTY or
+                cls.map[tile[1] + 1][tile[0]] == Tile.EMPTY or
+                cls.map[tile[1] + 1][tile[0] - 1] == Tile.EMPTY or
+                cls.map[tile[1] + 1][tile[0] + 1] == Tile.EMPTY or
+                cls.map[tile[1]][tile[0] + 1] == Tile.EMPTY or
+                cls.map[tile[1]][tile[0] - 1] == Tile.EMPTY
+                )
+
+    @classmethod
     def _prim_mst(cls) -> list[tuple[int, int]]:
         points = cls.big_rooms_center_points
         if not points:
@@ -259,8 +271,14 @@ class Map:
         for edge in cls.edges_of_the_corridor_graph:
             for tile in cls._get_tiles_in_line(
                     cls.big_rooms_center_points[edge[0]][0], cls.big_rooms_center_points[edge[0]][1],
-                    cls.big_rooms_center_points[edge[1]][0], cls.big_rooms_center_points[edge[1]][1], 1):
+                    cls.big_rooms_center_points[edge[1]][0], cls.big_rooms_center_points[edge[1]][1], 2):
                 cls.map[tile[1]][tile[0]] = Tile.FLOOR
+        for edge in cls.edges_of_the_corridor_graph:
+            for tile in cls._get_tiles_in_line(
+                    cls.big_rooms_center_points[edge[0]][0], cls.big_rooms_center_points[edge[0]][1],
+                    cls.big_rooms_center_points[edge[1]][0], cls.big_rooms_center_points[edge[1]][1], 2):
+                if cls._is_near_tile_empty(tile):
+                    cls.map[tile[1]][tile[0]] = Tile.BARRIER
         cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
