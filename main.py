@@ -45,6 +45,8 @@ class Tile(Enum):
     EMPTY = 0
     BARRIER = 1
     FLOOR = 2
+    ROOM_BARRIER = 3
+    ROOM_FLOOR = 4
 
 
 class Map:
@@ -94,8 +96,12 @@ class Map:
                 for room in cls.rooms:
                     if room.x <= x <= room.x + room.width - 1 and room.y <= y <= room.y + room.height - 1:
                         row[x] = Tile.FLOOR
+                        if room.width >= 8 and room.height >= 8:
+                            row[x] = Tile.ROOM_FLOOR
                         if room.x == x or room.x + room.width - 1 == x or room.y == y or room.y + room.height - 1 == y:
                             row[x] = Tile.BARRIER
+                            if room.width >= 8 and room.height >= 8:
+                                row[x] = Tile.ROOM_BARRIER
             cls.map.append(row)
 
     @classmethod
@@ -150,6 +156,10 @@ class Map:
                     color = (0, 0, 255)
                 elif cls.map[y][x] == Tile.FLOOR:
                     color = (128, 128, 255)
+                elif cls.map[y][x] == Tile.ROOM_FLOOR:
+                    color = (255, 128, 128)
+                elif cls.map[y][x] == Tile.ROOM_BARRIER:
+                    color = (255, 0, 0)
 
                 if cls.map[y][x] != Tile.EMPTY:
                     pg.draw.rect(surface, color,
