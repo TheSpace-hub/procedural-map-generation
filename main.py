@@ -60,6 +60,7 @@ class Map:
     map: list[list[Tile]] = []
     rooms: list[Rect] = []
     big_rooms_center_points: list[tuple[int, int]] = []
+    edges_of_the_corridor_graph: list[tuple[int, int]] = []
     construction_stage: ConstructionStage = ConstructionStage.GENERATE_ROOMS
 
     @staticmethod
@@ -70,6 +71,38 @@ class Map:
     def _choose_room_size(min_size, max_size, mean, std_dev):
         size = int(np.random.normal(mean, std_dev))
         return max(min(size, max_size), min_size)
+
+    @staticmethod
+    def _distance(p1, p2):
+        return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+    @classmethod
+    def _prim_mst(cls):
+        points = cls.big_rooms_center_points
+        if not points:
+            return []
+
+        mst = []
+        used = set()
+        used.add(0)
+
+        while len(used) < len(points):
+            min_edge = None
+            min_weight = float('inf')
+
+            for u in used:
+                for v in range(len(points)):
+                    if v not in used:
+                        dist = cls._distance(points[u], points[v])
+                        if dist < min_weight:
+                            min_weight = dist
+                            min_edge = (u, v)
+
+            if min_edge:
+                mst.append(min_edge)
+                used.add(min_edge[1])
+
+        return mst
 
     @classmethod
     def generate_initial_rooms(cls, count: int = 50):
@@ -121,7 +154,7 @@ class Map:
     def build_step(cls) -> bool:
         Log.log(cls.construction_stage)
         if cls.construction_stage == ConstructionStage.GENERATE_ROOMS:
-            cls.generate_initial_rooms(15)
+            cls.generate_initial_rooms(30)
         elif cls.construction_stage == ConstructionStage.SEPARATION_STEERING_FOR_ROOMS:
             cls.separation_steering_for_rooms()
         elif cls.construction_stage == ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES:
@@ -182,6 +215,7 @@ class Map:
                     cls.big_rooms_center_points.append((room.centerx, room.centery))
                     return
                 count -= 1
+        cls.edges_of_the_corridor_graph = cls._prim_mst()
         cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
@@ -210,6 +244,20 @@ class Map:
                 (960 - cls.get_size()[0] * tile_size / 2) + point[0] * tile_size,
                 (540 - cls.get_size()[1] * tile_size / 2) + point[1] * tile_size
             ], 5)
+
+        for edge in cls.edges_of_the_corridor_graph:
+            start = cls.big_rooms_center_points[edge[0]]
+            end = cls.big_rooms_center_points[edge[1]]
+            pg.draw.line(surface, (0, 255, 0),
+                         [
+                             (960 - cls.get_size()[0] * tile_size / 2) + start[0] * tile_size,
+                             (540 - cls.get_size()[1] * tile_size / 2) + start[1] * tile_size
+                         ],
+                         [
+                             (960 - cls.get_size()[0] * tile_size / 2) + end[0] * tile_size,
+                             (540 - cls.get_size()[1] * tile_size / 2) + end[1] * tile_size
+                         ],
+                         2)
 
 
 def main():
