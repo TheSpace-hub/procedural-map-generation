@@ -163,7 +163,7 @@ class Map:
         room = Rect(x, y, cls._choose_room_size(5, 25, 12, 2), cls._choose_room_size(5, 25, 12, 2))
 
         cls.rooms.append(room)
-        cls.update_map()
+        cls.update_rooms_in_map()
         if len(cls.rooms) == count:
             cls.construction_stage = ConstructionStage.SEPARATION_STEERING_FOR_ROOMS
 
@@ -176,7 +176,7 @@ class Map:
         return max_cord
 
     @classmethod
-    def update_map(cls):
+    def update_rooms_in_map(cls):
         cls.map: list[list[Tile]] = []
 
         max_cord: tuple[int, int] = [0, 0]
@@ -252,7 +252,7 @@ class Map:
                 for target in cls.rooms:
                     target.y += 1
 
-        cls.update_map()
+        cls.update_rooms_in_map()
 
         if not rooms_overlap:
             cls.construction_stage = ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES
