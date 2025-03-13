@@ -6,6 +6,7 @@ from enum import Enum
 from random import randint, uniform, expovariate
 from math import sqrt, pi, cos, sin
 from time import sleep
+import numpy as np
 
 pg.init()
 
@@ -46,16 +47,15 @@ class Tile(Enum):
     FLOOR = 2
 
 
-
 class Map:
     map: list[list[Tile]] = []
     rooms: list[Rect] = []
     rooms_overlap: bool = True
 
     @staticmethod
-    def _choose_room_size_exponential(min_size, max_size, decay_rate=0.5):
-        size = min_size + int(expovariate(decay_rate))
-        return min(size, max_size)
+    def _choose_room_size(min_size, max_size, mean, std_dev):
+        size = int(np.random.normal(mean, std_dev))
+        return max(min(size, max_size), min_size)
 
     @classmethod
     def generate_initial_rooms(cls, count: int = 50):
@@ -68,7 +68,7 @@ class Map:
             y = 15 + distance * sin(angle)
 
             cls.rooms.append(
-                Rect(x, y, cls._choose_room_size_exponential(3, 10), cls._choose_room_size_exponential(3, 10))
+                Rect(x, y, cls._choose_room_size(3, 20, 8, 2), cls._choose_room_size(3, 20, 8, 2))
             )
         cls.update_map()
 
@@ -111,7 +111,7 @@ class Map:
                 if target.colliderect(neighbor):
                     rooms_overlap = True
                     diff = Vector2(target.center[0], target.center[1]) - Vector2(neighbor.center[0],
-                                                                                neighbor.center[1])
+                                                                                 neighbor.center[1])
 
                     if diff.length() != 0.0:
                         diff = diff.normalize()
@@ -161,7 +161,7 @@ class Map:
 def main():
     pg.init()
 
-    Map.generate_initial_rooms()
+    Map.generate_initial_rooms(count=50)
 
     screen = pg.display.set_mode((1920, 1080))
     screen.fill((32, 32, 32))
