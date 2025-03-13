@@ -55,6 +55,8 @@ class ConstructionStage(Enum):
     ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES = 3
     CREATING_CORRIDORS = 4
     REMOVING_UNNECESSARY_ROOMS = 5
+    REMOVE_GRAPH = 6
+    SINGLE_COLOR = 7
     DONE = 0
 
 
@@ -152,7 +154,7 @@ class Map:
         return mst
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 30):
+    def generate_initial_rooms(cls, count: int = 50):
         radius: int = 15
         angle = uniform(0, 2 * pi)
         distance = sqrt(uniform(0, 1)) * radius
@@ -206,12 +208,33 @@ class Map:
             ConstructionStage.ARRANGEMENT_OF_THE_CORRIDOR_GRAPH_VERTICES: cls.arrangement_of_the_corridor_graph_vertices,
             ConstructionStage.CREATING_CORRIDORS: cls.creating_corridors,
             ConstructionStage.REMOVING_UNNECESSARY_ROOMS: cls.removing_unnecessary_rooms,
+            ConstructionStage.REMOVE_GRAPH: cls.remove_graph,
+            ConstructionStage.SINGLE_COLOR: cls.single_color,
             ConstructionStage.DONE: lambda: None
         }
 
         actions[cls.construction_stage]()
 
-        return cls.construction_stage == ConstructionStage.DONE
+        return cls.construction_stage == ConstructionStage.REMOVE_GRAPH
+
+    @classmethod
+    def remove_graph(cls):
+        sleep(1)
+        cls.big_rooms_center_points = []
+        cls.edges_of_the_corridor_graph = []
+
+        cls.construction_stage = ConstructionStage.SINGLE_COLOR
+
+    @classmethod
+    def single_color(cls):
+        sleep(1)
+        for y in range(len(cls.map)):
+            for x in range(len(cls.map[y])):
+                if cls.map[y][x] == Tile.ROOM_BARRIER:
+                    cls.map[y][x] = Tile.BARRIER
+                elif cls.map[y][x] == Tile.ROOM_FLOOR:
+                    cls.map[y][x] = Tile.FLOOR
+        cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
     def separation_steering_for_rooms(cls) -> bool:
@@ -305,7 +328,7 @@ class Map:
             return True
 
         cls.rooms = list(filter(is_unaffected, cls.rooms))
-        cls.construction_stage = ConstructionStage.DONE
+        cls.construction_stage = ConstructionStage.REMOVE_GRAPH
 
     @classmethod
     def draw(cls, surface: Surface):
@@ -354,7 +377,7 @@ def main():
 
     screen = pg.display.set_mode((1920, 1080))
     screen.fill((32, 32, 32))
-
+    go = False
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -362,8 +385,11 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
                     Log.stop = not Log.stop
+                if event.key == pg.K_b:
+                    go = True
 
-        Map.build_step()
+        if go:
+            Map.build_step()
 
         screen.fill((32, 32, 32))
         Map.draw(screen)
