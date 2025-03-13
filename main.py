@@ -49,10 +49,16 @@ class Tile(Enum):
     ROOM_FLOOR = 4
 
 
+class ConstructionStage(Enum):
+    GENERATE_ROOMS = 1
+    SEPARATION_STEERING_FOR_ROOMS = 2
+    DONE = 0
+
+
 class Map:
     map: list[list[Tile]] = []
     rooms: list[Rect] = []
-    rooms_overlap: bool = True
+    construction_stage: ConstructionStage = ConstructionStage.GENERATE_ROOMS
 
     @staticmethod
     def _choose_room_size(min_size, max_size, mean, std_dev):
@@ -62,17 +68,18 @@ class Map:
     @classmethod
     def generate_initial_rooms(cls, count: int = 50):
         radius: int = 15
-        for i in range(count):
-            angle = uniform(0, 2 * pi)
-            distance = sqrt(uniform(0, 1)) * radius
+        angle = uniform(0, 2 * pi)
+        distance = sqrt(uniform(0, 1)) * radius
 
-            x = 15 + distance * cos(angle)
-            y = 15 + distance * sin(angle)
+        x = 15 + distance * cos(angle)
+        y = 15 + distance * sin(angle)
 
-            cls.rooms.append(
-                Rect(x, y, cls._choose_room_size(3, 20, 8, 2), cls._choose_room_size(3, 20, 8, 2))
-            )
+        cls.rooms.append(
+            Rect(x, y, cls._choose_room_size(3, 20, 8, 2), cls._choose_room_size(3, 20, 8, 2))
+        )
         cls.update_map()
+        if len(cls.rooms) == 50:
+            cls.construction_stage = ConstructionStage.SEPARATION_STEERING_FOR_ROOMS
 
     @classmethod
     def get_size(cls) -> tuple[int, int]:
@@ -103,6 +110,13 @@ class Map:
                             if room.width >= 8 and room.height >= 8:
                                 row[x] = Tile.ROOM_BARRIER
             cls.map.append(row)
+
+    @classmethod
+    def build_step(cls) -> bool:
+        if cls.construction_stage == ConstructionStage.GENERATE_ROOMS:
+            cls.generate_initial_rooms()
+        elif cls.construction_stage == ConstructionStage.SEPARATION_STEERING_FOR_ROOMS:
+            cls.separation_steering_for_rooms()
 
     @classmethod
     def separation_steering_for_rooms(cls) -> bool:
@@ -144,7 +158,9 @@ class Map:
                     target.y += 1
 
         cls.update_map()
-        cls.rooms_overlap = rooms_overlap
+
+        if not rooms_overlap:
+            cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
     def draw(cls, surface: Surface):
@@ -171,8 +187,6 @@ class Map:
 def main():
     pg.init()
 
-    Map.generate_initial_rooms(count=50)
-
     screen = pg.display.set_mode((1920, 1080))
     screen.fill((32, 32, 32))
 
@@ -184,8 +198,7 @@ def main():
                 if event.key == pg.K_SPACE:
                     Log.stop = not Log.stop
 
-        if Map.rooms_overlap:
-            Map.separation_steering_for_rooms()
+        Map.build_step()
 
         screen.fill((32, 32, 32))
         Map.draw(screen)
