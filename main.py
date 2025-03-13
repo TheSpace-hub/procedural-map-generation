@@ -3,7 +3,7 @@ from pygame import Surface, Rect, Vector2
 
 from enum import Enum
 
-from random import randint, uniform
+from random import randint, uniform, expovariate
 from math import sqrt, pi, cos, sin
 from time import sleep
 
@@ -46,27 +46,39 @@ class Tile(Enum):
     FLOOR = 2
 
 
+
 class Map:
     map: list[list[Tile]] = []
     rooms: list[Rect] = []
+    rooms_overlap: bool = True
+
+    @staticmethod
+    def _choose_room_size_exponential(min_size, max_size, decay_rate=0.5):
+        size = min_size + int(expovariate(decay_rate))
+        return min(size, max_size)
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 150):
+    def generate_initial_rooms(cls, count: int = 50):
         radius: int = 15
         for i in range(count):
             angle = uniform(0, 2 * pi)
             distance = sqrt(uniform(0, 1)) * radius
 
-            Log.log(f'{distance} || {distance * cos(angle)} / {distance * sin(angle)}')
-
             x = 15 + distance * cos(angle)
             y = 15 + distance * sin(angle)
 
             cls.rooms.append(
-                Rect(x, y, randint(5, 10), randint(5, 10))
+                Rect(x, y, cls._choose_room_size_exponential(3, 10), cls._choose_room_size_exponential(3, 10))
             )
-
         cls.update_map()
+
+    @classmethod
+    def get_size(cls) -> tuple[int, int]:
+        max_cord: tuple[int, int] = [0, 0]
+        for room in cls.rooms:
+            max_cord = [max(max_cord[0], room.x + room.width), max(max_cord[1], room.y + room.height)]
+
+        return max_cord
 
     @classmethod
     def update_map(cls):
@@ -87,7 +99,8 @@ class Map:
             cls.map.append(row)
 
     @classmethod
-    def separation_steering_for_rooms(cls):
+    def separation_steering_for_rooms(cls) -> bool:
+        rooms_overlap = False
         separation_vectors: list[Vector2] = []
         for target in cls.rooms:
             separation_vectors.append(Vector2())
@@ -96,8 +109,9 @@ class Map:
                     continue
 
                 if target.colliderect(neighbor):
+                    rooms_overlap = True
                     diff = Vector2(target.center[0], target.center[1]) - Vector2(neighbor.center[0],
-                                                                                 neighbor.center[1])
+                                                                                neighbor.center[1])
 
                     if diff.length() != 0.0:
                         diff = diff.normalize()
@@ -124,6 +138,7 @@ class Map:
                     target.y += 1
 
         cls.update_map()
+        cls.rooms_overlap = rooms_overlap
 
     @classmethod
     def draw(cls, surface: Surface):
@@ -136,8 +151,11 @@ class Map:
                 elif cls.map[y][x] == Tile.FLOOR:
                     color = (128, 128, 255)
 
-                pg.draw.rect(surface, color,
-                             Rect(150 + x * tile_size, 150 + y * tile_size, tile_size, tile_size), tile_size // 3)
+                if cls.map[y][x] != Tile.EMPTY:
+                    pg.draw.rect(surface, color,
+                                 Rect((960 - cls.get_size()[0] * tile_size / 2) + x * tile_size,
+                                      (540 - cls.get_size()[1] * tile_size / 2) + y * tile_size, tile_size, tile_size),
+                                 tile_size // 3)
 
 
 def main():
@@ -155,10 +173,9 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_SPACE:
                     Log.stop = not Log.stop
-                if event.key == pg.K_s:
-                    pass
 
-        Map.separation_steering_for_rooms()
+        if Map.rooms_overlap:
+            Map.separation_steering_for_rooms()
 
         screen.fill((32, 32, 32))
         Map.draw(screen)
