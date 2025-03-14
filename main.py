@@ -219,7 +219,7 @@ class Map:
 
     @classmethod
     def remove_graph(cls):
-        sleep(1)
+        sleep(.5)
         cls.big_rooms_center_points = []
         cls.edges_of_the_corridor_graph = []
 
@@ -227,7 +227,7 @@ class Map:
 
     @classmethod
     def single_color(cls):
-        sleep(1)
+        sleep(.5)
         for y in range(len(cls.map)):
             for x in range(len(cls.map[y])):
                 if cls.map[y][x] == Tile.ROOM_BARRIER:
