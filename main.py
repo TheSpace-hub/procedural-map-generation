@@ -3,7 +3,7 @@ from pygame import Surface, Rect, Vector2
 
 from enum import Enum
 
-from random import randint, uniform, expovariate
+from random import uniform
 from math import sqrt, pi, cos, sin
 from time import sleep
 import numpy as np
@@ -26,12 +26,12 @@ class Log:
     @classmethod
     def draw(cls, screen: pg.Surface):
         offset: int = 0
-        size: tuple[int, int] = [0, 0]
+        size: tuple[int, int] = (0, 0)
         for log in Log.logs:
             text_surface = cls.my_font.render(log, False, (255, 0, 0))
-            size[0] = max(size[0], text_surface.get_size()[0] + 20)
+            size = (max(size[0], text_surface.get_size()[0] + 20), 0)
             offset += text_surface.get_size()[1]
-        size[1] = offset + 20
+        size = (size[0], offset + 20)
         offset = 0
 
         pg.draw.rect(screen, (32, 32, 32), Rect(0, 0, size[0], size[1]))
@@ -154,7 +154,7 @@ class Map:
         return mst
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 50):
+    def generate_initial_rooms(cls, count: int = 15):
         radius: int = 15
         angle = uniform(0, 2 * pi)
         distance = sqrt(uniform(0, 1)) * radius
@@ -171,9 +171,9 @@ class Map:
 
     @classmethod
     def get_size(cls) -> tuple[int, int]:
-        max_cord: tuple[int, int] = [0, 0]
+        max_cord: tuple[int, int] = (0, 0)
         for room in cls.rooms:
-            max_cord = [max(max_cord[0], room.x + room.width), max(max_cord[1], room.y + room.height)]
+            max_cord = (max(max_cord[0], room.x + room.width), max(max_cord[1], room.y + room.height))
 
         return max_cord
 
@@ -181,9 +181,9 @@ class Map:
     def update_rooms_in_map(cls):
         cls.map: list[list[Tile]] = []
 
-        max_cord: tuple[int, int] = [0, 0]
+        max_cord: tuple[int, int] = (0, 0)
         for room in cls.rooms:
-            max_cord = [max(max_cord[0], room.x + room.width), max(max_cord[1], room.y + room.height)]
+            max_cord = (max(max_cord[0], room.x + room.width), max(max_cord[1], room.y + room.height))
 
         for y in range(max_cord[1]):
             row: list[Tile] = [Tile.EMPTY] * max_cord[0]
