@@ -237,7 +237,7 @@ class Map:
         cls.construction_stage = ConstructionStage.DONE
 
     @classmethod
-    def separation_steering_for_rooms(cls) -> bool:
+    def separation_steering_for_rooms(cls):
         rooms_overlap = False
         separation_vectors: list[Vector2] = []
         for target in cls.rooms:
