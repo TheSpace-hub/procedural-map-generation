@@ -8,6 +8,8 @@ from math import sqrt, pi, cos, sin
 from time import sleep
 import numpy as np
 
+import yaml
+
 pg.init()
 
 
@@ -66,6 +68,14 @@ class Map:
     big_rooms_center_points: list[tuple[int, int]] = []
     edges_of_the_corridor_graph: list[tuple[int, int]] = []
     construction_stage: ConstructionStage = ConstructionStage.GENERATE_ROOMS
+
+    @classmethod
+    def restart(cls):
+        cls.map: list[list[Tile]] = []
+        cls.rooms: list[Rect] = []
+        cls.big_rooms_center_points: list[tuple[int, int]] = []
+        cls.edges_of_the_corridor_graph: list[tuple[int, int]] = []
+        cls.construction_stage: ConstructionStage = ConstructionStage.GENERATE_ROOMS
 
     @staticmethod
     def _is_room_big(room: Rect) -> bool:
@@ -154,7 +164,7 @@ class Map:
         return mst
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 15):
+    def generate_initial_rooms(cls, count: int = 5):
         radius: int = 15
         angle = uniform(0, 2 * pi)
         distance = sqrt(uniform(0, 1)) * radius
@@ -371,6 +381,21 @@ class Map:
                          ],
                          2)
 
+    @classmethod
+    def get_bool_map(cls) -> list[list[bool | None]]:
+        field: list[list[bool | None]] = []
+        for y in range(len(Map.map)):
+            row: list[bool | None] = []
+            for x in range(len(Map.map[y])):
+                if Map.map[y][x] == Tile.EMPTY:
+                    row.append(None)
+                elif Map.map[y][x] == Tile.FLOOR:
+                    row.append(False)
+                elif Map.map[y][x] == Tile.FLOOR:
+                    row.append(True)
+            field.append(row)
+        return field
+
 
 def main():
     pg.init()
@@ -378,6 +403,8 @@ def main():
     screen = pg.display.set_mode((1920, 1080))
     screen.fill((32, 32, 32))
     go = False
+
+    saved: list[list[list[bool | None]]] = []
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -387,14 +414,23 @@ def main():
                     Log.stop = not Log.stop
                 if event.key == pg.K_b:
                     go = True
+                if event.key == pg.K_s:
+                    with open('custom_fields.yml', 'w') as file:
+                        file.write(yaml.dump(saved))
+
+                if event.key == pg.K_r or event.key == pg.K_a:
+                    if event.key == pg.K_a:
+                        saved.append(Map.get_bool_map())
+                    Map.restart()
+                    go = False
 
         if go:
-            Map.build_step()
+            if Map.construction_stage != ConstructionStage.DONE:
+                Map.build_step()
 
         screen.fill((32, 32, 32))
         Map.draw(screen)
 
-        Log.draw(screen)
         pg.display.flip()
 
 
