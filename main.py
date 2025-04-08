@@ -414,6 +414,14 @@ def get_all_fields_files_names() -> list[str]:
     return real
 
 
+def get_last_field_index() -> int:
+    if not get_all_fields_files_names():
+        return 0
+
+    index, _ = get_all_fields_files_names()[-1:][0].split('_')
+    return int(index)
+
+
 def main():
     pg.init()
 
@@ -423,7 +431,6 @@ def main():
 
     saved: list[list[list[int]]] = []
     # saved_index: int = int(get_fields_files_names()[-1:][0][:1]) + 1
-    print(get_all_fields_files_names())
 
     return
     while True:
