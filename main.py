@@ -3,6 +3,7 @@ from pygame import Surface, Rect, Vector2
 
 from enum import Enum
 
+import os
 from random import uniform
 from math import sqrt, pi, cos, sin
 from time import sleep
@@ -164,7 +165,7 @@ class Map:
         return mst
 
     @classmethod
-    def generate_initial_rooms(cls, count: int = 5):
+    def generate_initial_rooms(cls, count: int = 15):
         radius: int = 15
         angle = uniform(0, 2 * pi)
         distance = sqrt(uniform(0, 1)) * radius
@@ -382,19 +383,35 @@ class Map:
                          2)
 
     @classmethod
-    def get_bool_map(cls) -> list[list[bool | None]]:
-        field: list[list[bool | None]] = []
+    def get_int_map(cls) -> list[list[int]]:
+        field: list[list[int]] = []
         for y in range(len(Map.map)):
-            row: list[bool | None] = []
+            row: list[int] = []
             for x in range(len(Map.map[y])):
                 if Map.map[y][x] == Tile.EMPTY:
-                    row.append(None)
+                    row.append(0)
                 elif Map.map[y][x] == Tile.FLOOR:
-                    row.append(False)
-                elif Map.map[y][x] == Tile.FLOOR:
-                    row.append(True)
+                    row.append(1)
+                elif Map.map[y][x] == Tile.BARRIER:
+                    row.append(2)
             field.append(row)
         return field
+
+
+def get_all_fields_files_names() -> list[str]:
+    files = [f for f in os.listdir('.\\fields') if os.path.isfile(f'.\\fields\\{f}')]
+    real: list[str] = []
+    for file in files:
+        if len(file.split('_')) != 2:
+            os.remove(f'.\\fields\\{file}')
+            continue
+        index, suffix = file.split('_')
+        if suffix != 'field.yml' or not index.isdigit():
+            os.remove(f'.\\fields\\{file}')
+            continue
+        real.append(file)
+
+    return real
 
 
 def main():
@@ -404,7 +421,11 @@ def main():
     screen.fill((32, 32, 32))
     go = False
 
-    saved: list[list[list[bool | None]]] = []
+    saved: list[list[list[int]]] = []
+    # saved_index: int = int(get_fields_files_names()[-1:][0][:1]) + 1
+    print(get_all_fields_files_names())
+
+    return
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -415,12 +436,15 @@ def main():
                 if event.key == pg.K_b:
                     go = True
                 if event.key == pg.K_s:
-                    with open('custom_fields.yml', 'w') as file:
-                        file.write(yaml.dump(saved))
+                    with open(f'.\\fields\\{saved_index}_field.yml', 'w') as file:
+                        file.write(yaml.dump({
+                            'field': saved
+                        }))
+                    saved_index += 1
 
                 if event.key == pg.K_r or event.key == pg.K_a:
                     if event.key == pg.K_a:
-                        saved.append(Map.get_bool_map())
+                        saved.append(Map.get_int_map())
                     Map.restart()
                     go = False
 
