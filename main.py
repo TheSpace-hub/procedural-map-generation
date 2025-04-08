@@ -402,6 +402,8 @@ def get_all_fields_files_names() -> list[str]:
     files = [f for f in os.listdir('.\\fields') if os.path.isfile(f'.\\fields\\{f}')]
     real: list[str] = []
     for file in files:
+        if file == '.gitkeep':
+            continue
         if len(file.split('_')) != 2:
             os.remove(f'.\\fields\\{file}')
             continue
@@ -429,10 +431,7 @@ def main():
     screen.fill((32, 32, 32))
     go = False
 
-    saved: list[list[list[int]]] = []
-    # saved_index: int = int(get_fields_files_names()[-1:][0][:1]) + 1
-
-    return
+    saved_index: int = get_last_field_index() + 1
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -442,16 +441,14 @@ def main():
                     Log.stop = not Log.stop
                 if event.key == pg.K_b:
                     go = True
-                if event.key == pg.K_s:
-                    with open(f'.\\fields\\{saved_index}_field.yml', 'w') as file:
-                        file.write(yaml.dump({
-                            'field': saved
-                        }))
-                    saved_index += 1
+                if event.key == pg.K_s or event.key == pg.K_r:
+                    if event.key == pg.K_s:
+                        with open(f'.\\fields\\{saved_index}_field.yml', 'w') as file:
+                            file.write(yaml.dump({
+                                'field': Map.get_int_map()
+                            }))
+                        saved_index += 1
 
-                if event.key == pg.K_r or event.key == pg.K_a:
-                    if event.key == pg.K_a:
-                        saved.append(Map.get_int_map())
                     Map.restart()
                     go = False
 
