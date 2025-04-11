@@ -1,3 +1,5 @@
+import random
+
 import pygame as pg
 from pygame import Surface, Rect, Vector2
 
@@ -424,6 +426,20 @@ def get_last_field_index() -> int:
     return int(index)
 
 
+def find_spawn_points(field: list[list[int]], count: int) -> list[tuple[int, int]]:
+    spawn_points: list[tuple[int, int]] = []
+    field_size: tuple[int, int] = (len(field[0]), len(field))
+    while len(spawn_points) < count:
+        p: tuple[int, int] = (
+            random.randint(0, field_size[0] - 1),
+            random.randint(0, field_size[1] - 1)
+        )
+        if field[p[1]][p[0]] == 1:
+            spawn_points.append(p)
+
+    return spawn_points
+
+
 def main():
     pg.init()
 
@@ -432,6 +448,7 @@ def main():
     go = False
 
     saved_index: int = get_last_field_index() + 1
+    spawn_points: list[tuple[int, int]] = []
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -445,19 +462,29 @@ def main():
                     if event.key == pg.K_s:
                         with open(f'.\\fields\\{saved_index}_field.yml', 'w') as file:
                             file.write(yaml.dump({
-                                'field': Map.get_int_map()
+                                'field': Map.get_int_map(),
+                                'spawn_points': list(map(lambda o: list(o), spawn_points))
                             }))
                         saved_index += 1
 
                     Map.restart()
-                    go = False
+                    spawn_points = []
 
         if go:
             if Map.construction_stage != ConstructionStage.DONE:
                 Map.build_step()
+            else:
+                go = False
+                spawn_points = find_spawn_points(Map.get_int_map(), 3)
 
         screen.fill((32, 32, 32))
         Map.draw(screen)
+
+        for p in spawn_points:
+            pg.draw.circle(screen, (255, 255, 255), [
+                (960 - Map.get_size()[0] * 5 / 2) + p[0] * 5 + 2,
+                (540 - Map.get_size()[1] * 5 / 2) + p[1] * 5 + 2
+            ], 2)
 
         pg.display.flip()
 
